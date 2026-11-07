@@ -1,0 +1,15 @@
+--- a/drivers/net/wireless/ath/ath11k/nss.c
++++ b/drivers/net/wireless/ath/ath11k/nss.c
+@@ -896,6 +896,12 @@ ath11k_nss_vdev_special_data_receive(str
+ 		dev_kfree_skb_any(skb);
+ #endif
+ 	break;
++#ifndef CONFIG_NSS_FIRMWARE_VERSION_11_4
++	case NSS_WIFI_VDEV_EXT_DATA_PKT_TYPE_EAPOL:
++		/* Without this case the frame reaches the default branch and is dropped. */
++		ath11k_nss_deliver_rx(arvif->vif, skb, eth_decap, data_offs, napi);
++	break;
++#endif
+ 	default:
+ 		ath11k_warn(ab, "unsupported pkt_type %d from nss\n", wifi_metadata->pkt_type);
+ 		dev_kfree_skb_any(skb);
