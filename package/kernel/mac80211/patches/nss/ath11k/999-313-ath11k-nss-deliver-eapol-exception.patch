@@ -1,3 +1,12 @@
+Subject: [PATCH] ath11k: nss: deliver EAPOL exception frames to the host
+
+NSS 12.5 sends EAPOL frames to the host as a special-data exception of
+type NSS_WIFI_VDEV_EXT_DATA_PKT_TYPE_EAPOL. Without a case for it the
+frame reaches the default branch and is dropped, so a client cannot finish
+the 4-way handshake. Deliver it through ath11k_nss_deliver_rx like other
+received frames. The enum does not exist in the 11.4 headers, so the case
+is compiled out when CONFIG_NSS_FIRMWARE_VERSION_11_4 is set.
+---
 --- a/drivers/net/wireless/ath/ath11k/nss.c
 +++ b/drivers/net/wireless/ath/ath11k/nss.c
 @@ -896,6 +896,12 @@ ath11k_nss_vdev_special_data_receive(str

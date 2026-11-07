@@ -2557,7 +2557,8 @@
  		goto skip_mgmt_stats;
 @@ -8065,8 +8063,10 @@ static void ath11k_peer_sta_kickout_even
  	struct wmi_peer_sta_kickout_arg arg = {};
- 	struct ieee80211_sta *sta;
+-	struct ieee80211_sta *sta;
++	struct ieee80211_sta *sta = NULL;
  	struct ath11k_peer *peer;
 +	struct ath11k_peer *save_peer = NULL;
  	struct ath11k *ar;
