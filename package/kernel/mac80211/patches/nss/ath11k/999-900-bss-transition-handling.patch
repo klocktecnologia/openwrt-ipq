@@ -2558,17 +2558,17 @@
 @@ -8065,8 +8063,10 @@ static void ath11k_peer_sta_kickout_even
  	struct wmi_peer_sta_kickout_arg arg = {};
 -	struct ieee80211_sta *sta;
-+	struct ieee80211_sta *sta = NULL;
  	struct ath11k_peer *peer;
-+	struct ath11k_peer *save_peer = NULL;
  	struct ath11k *ar;
 -	u32 vdev_id;
-+	struct ath11k *save_ar;
++	struct ath11k *stale_ar[MAX_RADIOS];
++	int stale_vdev_id[MAX_RADIOS];
++	int num_stale = 0;
 +	int i;
  
  	if (ath11k_pull_peer_sta_kickout_ev(ab, skb, &arg) != 0) {
  		ath11k_warn(ab, "failed to extract peer sta kickout event");
-@@ -8077,40 +8077,39 @@ static void ath11k_peer_sta_kickout_even
+@@ -8077,40 +8077,38 @@ static void ath11k_peer_sta_kickout_even
  
  	spin_lock_bh(&ab->base_lock);
  
@@ -2582,18 +2582,20 @@
 -	}
 -
 -	vdev_id = peer->vdev_id;
-+	for (i = 0; i < ab->num_radios; i++) {
-+		struct ath11k_pdev *pdev = &ab->pdevs[i];
-+		ar = pdev->ar;
++	for (i = 0; i < ab->num_radios && i < MAX_RADIOS; i++) {
++		struct ieee80211_sta *sta;
++
++		ar = ab->pdevs[i].ar;
 +		peer = ath11k_peer_find_by_addr(ar, arg.mac_addr);
-+		if (!peer) {
++		if (!peer)
 +			continue;
-+		}
-+		save_peer = peer;
-+		save_ar = ar;
++
 +		sta = ieee80211_find_sta_by_ifaddr(ar->hw, arg.mac_addr, NULL);
 +		if (!sta) {
-+			    continue;
++			stale_ar[num_stale] = ar;
++			stale_vdev_id[num_stale] = peer->vdev_id;
++			num_stale++;
++			continue;
 +		}
  
 -	spin_unlock_bh(&ab->base_lock);
@@ -2613,18 +2615,16 @@
 -		ath11k_warn(ab, "Spurious quick kickout for STA %pM\n",
 -			    arg.mac_addr);
 -		goto exit;
-+	if (!sta && save_peer) {
-+		int vdev_id = save_peer->vdev_id;
 +
++	spin_unlock_bh(&ab->base_lock);
++
++	for (i = 0; i < num_stale; i++) {
 +		ath11k_warn(ab, "Spurious quick kickout for STA %pM but found in peer table\n", arg.mac_addr);
 +		/* ath11k_dp_peer_cleanup() takes ab->base_lock itself; calling
-+		 * it with the lock held would self-deadlock this CPU. Drop the
-+		 * lock first.
++		 * it with the lock held would self-deadlock this CPU, so it
++		 * runs only after the lock is dropped.
 +		 */
-+		spin_unlock_bh(&ab->base_lock);
-+		ath11k_dp_peer_cleanup(save_ar, vdev_id, arg.mac_addr);
-+		rcu_read_unlock();
-+		return;
++		ath11k_dp_peer_cleanup(stale_ar[i], stale_vdev_id[i], arg.mac_addr);
  	}
  
 -	ath11k_dbg(ab, ATH11K_DBG_WMI, "event peer sta kickout %pM",
@@ -2633,7 +2633,6 @@
 -	ieee80211_report_low_ack(sta, 10);
 -
 -exit:
-+	spin_unlock_bh(&ab->base_lock);
  	rcu_read_unlock();
  }
  
