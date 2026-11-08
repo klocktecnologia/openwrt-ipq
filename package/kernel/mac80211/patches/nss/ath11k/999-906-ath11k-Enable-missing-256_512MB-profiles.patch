@@ -1,0 +1,49 @@
+From: qosmio upstream main-nss 5b13bb1b71, rebased onto backports 6.12.61
+Subject: ath11k_nss: add missing num_vdevs_peers in 256/512MB profiles
+
+TARGET_NUM_VDEVS() indexes hw_params.num_vdevs_peers, which 207 sets only
+for IPQ8074, WCN6855 and IPQ5018. On QCN9074 (fw_mem_mode 2) the first
+WMI init reads NULL[2] and panics (qosmio/openwrt-ipq#72).
+
+--- a/drivers/net/wireless/ath/ath11k/core.c
++++ b/drivers/net/wireless/ath/ath11k/core.c
+@@ -214,6 +214,7 @@
+ 		.tx_ring_size = DP_TCL_DATA_RING_SIZE,
+ 		.smp2p_wow_exit = false,
+ 		.support_fw_mac_sequence = false,
++		.num_vdevs_peers = ath11k_vdevs_peers,
+ 		.support_dual_stations = false,
+ 		/* In addition to TCL ring use TCL_CMD ring also for tx */
+ 		.max_tx_ring = DP_TCL_NUM_RING_MAX + 1,
+@@ -305,6 +306,7 @@
+ 		.tx_ring_size = DP_TCL_DATA_RING_SIZE,
+ 		.smp2p_wow_exit = false,
+ 		.support_fw_mac_sequence = true,
++		.num_vdevs_peers = ath11k_vdevs_peers,
+ 		.support_dual_stations = true,
+ 	},
+ 	{
+@@ -387,6 +389,7 @@
+ 		.tx_ring_size = DP_TCL_DATA_RING_SIZE,
+ 		.smp2p_wow_exit = false,
+ 		.support_fw_mac_sequence = false,
++		.num_vdevs_peers = ath11k_vdevs_peers,
+ 		.support_dual_stations = false,
+ 		/* In addition to TCL ring use TCL_CMD ring also for tx */
+ 		.max_tx_ring = DP_TCL_NUM_RING_MAX + 1,
+@@ -649,6 +652,7 @@
+ 		.tx_ring_size = DP_TCL_DATA_RING_SIZE_WCN6750,
+ 		.smp2p_wow_exit = true,
+ 		.support_fw_mac_sequence = true,
++		.num_vdevs_peers = ath11k_vdevs_peers,
+ 		.support_dual_stations = false,
+ 	},
+ 	{
+@@ -821,6 +825,7 @@
+ 		.tx_ring_size = DP_TCL_DATA_RING_SIZE,
+ 		.smp2p_wow_exit = false,
+ 		.support_fw_mac_sequence = true,
++		.num_vdevs_peers = ath11k_vdevs_peers,
+ 		.support_dual_stations = true,
+ 	},
+ };
